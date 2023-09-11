@@ -29,6 +29,7 @@ const askUserAboutSeat = (module) => {
             title: "What seat are you in?", 
             op1: "Pilot",
             op2: "WSO",
+            checkBoxLabel: "Assume pilot seat from now"
           })
           .then(seat => {
         
@@ -36,6 +37,7 @@ const askUserAboutSeat = (module) => {
               title: "What route are you using?",
               op1: "A{1/A}",  // op1: "A"
               op2: "B{1/B}",  // op2: "B" // removed because its a nice touch to keep the explicitness of this here, instead of making it more inline.
+              checkBoxLabel: "Assume this route from now"
             })
             .then(route => {
         

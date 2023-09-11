@@ -5,14 +5,16 @@ import saveUserPreferences from "../utils/saveUserPreferences";
 import {uiActions} from "../store/ui";
 import {useDispatch} from "react-redux";
 
-const MuiDialog = ({isOpen, onResolve, onReject, title, op1, op2}) => {
+const MuiDialog = ({isOpen, onResolve, onReject, title, op1, op2, checkBoxLabel}) => {
     const [checked, setChecked] = useState(false);
     const dispatch = useDispatch();
+    const boxLabel = checkBoxLabel || "Assume current option from now on";
     const handleChange = (event) => {
         setChecked(event.target.checked);
         dispatch(uiActions.setUserPreferences({hideDialogs: event.target.checked}));
         saveUserPreferences({hideDialogs: event.target.checked});
     };
+
 
     return (
         <Dialog open={isOpen} onClose={onReject}>
@@ -24,7 +26,7 @@ const MuiDialog = ({isOpen, onResolve, onReject, title, op1, op2}) => {
                     <FormControlLabel control={
                         <Checkbox checked={checked}
                                   onChange={handleChange}/>
-                    } label="Assume pilot slot from now"/>
+                    } label={boxLabel}/>
                 </FormGroup>
             </Stack>
         </Dialog>
