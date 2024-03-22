@@ -1,18 +1,21 @@
-log.write("THEWAY", log.INFO, "Initializing...")
---Version 3
+log.write("THEWAY", log.INFO, "Initializing V2.4.2")
 local tcpServer                        = nil
 local udpSpeaker                       = nil
 package.path                           = package.path .. ";" .. lfs.currentdir() .. "/LuaSocket/?.lua"
 package.cpath                          = package.cpath .. ";" .. lfs.currentdir() .. "/LuaSocket/?.dll"
-package.path                           = package.path .. ";" .. lfs.currentdir() .. "/Scripts/?.lua"
+package.path = package.path .. ";.\\Scripts\\?.lua;.\\Scripts\\UI\\?.lua;.\\dxgui\\loader\\?.lua;.\\dxgui\\bind\\?.lua;.\\dxgui\\skins\\common\\?.lua;.\\dxgui\\skins\\skinME\\?.lua"
 local socket                           = require("socket")
 local JSON                             = loadfile("Scripts\\JSON.lua")()
+local DialogLoader = require("DialogLoader")
+local dxgui = require('dxgui')
+local Skin = require("Skin")
+local SkinUtils = require("SkinUtils")
 
 local upstreamLuaExportStart           = LuaExportStart
 local upstreamLuaExportAfterNextFrame  = LuaExportAfterNextFrame
 local upstreamLuaExportBeforeNextFrame = LuaExportBeforeNextFrame
 
-
+local crosshair = nil 
 
 function LuaExportStart()
     if upstreamLuaExportStart ~= nil then
@@ -28,6 +31,21 @@ function LuaExportStart()
     tcpServer:bind("127.0.0.1", 42070)
     tcpServer:listen(1)
     tcpServer:settimeout(0)
+
+    crosshair = DialogLoader.spawnDialogFromFile(
+        lfs.writedir() .. "Scripts\\TheWay\\Crosshair.dlg"
+    )
+    local skin = crosshair.WaypointCrosshair:getSkin()
+    local crosshairPicturePath = lfs.writedir()..skin.skinData.states.released[1].picture.file
+    crosshair.WaypointCrosshair:setSkin(SkinUtils.setStaticPicture(crosshairPicturePath, skin))
+    local screenWidth, screenHeigt = dxgui.GetScreenSize()
+    local x = screenWidth/2 - 5
+    local y = screenHeigt/2 - 5
+    crosshair:setBounds(math.floor(x), math.floor(y), 10, 10)
+end
+
+function LuaExportStop()
+    crosshair:setVisible(false)
 end
 
 local data
@@ -38,6 +56,8 @@ local lastDevice = ""
 local lastCode = ""
 local lastNeedDepress = true
 local whenToDepress = nil
+local crosshairVisible = false
+local stringtoboolean={ ["true"]=true, ["false"]=false }
 function LuaExportBeforeNextFrame()
     if upstreamLuaExportBeforeNextFrame ~= nil then
         successful, err = pcall(upstreamLuaExportBeforeNextFrame)
@@ -60,7 +80,8 @@ function LuaExportBeforeNextFrame()
             end
         else
             -- Prepare for new button push
-            local keys = JSON:decode(data)
+            local decodedData = JSON:decode(data)
+            local keys = decodedData["payload"]
             --check if there are buttons left to press
             if currCommandIndex <= #keys then
                 lastDevice = keys[currCommandIndex]["device"]
@@ -90,7 +111,13 @@ function LuaExportBeforeNextFrame()
             end
 
             if data then
-                busy = true
+                local keys = JSON:decode(data)
+                if keys["type"] == "waypoints" then
+                    busy = true
+                elseif keys["type"] == "crosshair" then
+                    local shouldBeVisible = stringtoboolean[keys["payload"]]
+                    crosshair:setVisible(shouldBeVisible)
+                end
             end
         end
     end
@@ -111,22 +138,20 @@ function LuaExportAfterNextFrame()
     local elevation = LoGetAltitude(loX, loZ)
     local coords = LoLoCoordinatesToGeoCoordinates(loX, loZ)
     local selfData = LoGetSelfData()
-    if (selfData ~= nil) then
-        local model = selfData["Name"];
-        local message = {}
-        message["model"] = model
-        message["coords"] = {}
-        message["coords"]["lat"] = tostring(coords.latitude)
-        message["coords"]["long"] = tostring(coords.longitude)
-        message["elev"] = tostring(elevation)
-        local toSend = JSON:encode(message)
+    local model = selfData and selfData['Name'] or 'Spectator'
+    local message = {}
+    message["model"] = model
+    message["coords"] = {}
+    message["coords"]["lat"] = tostring(coords.latitude)
+    message["coords"]["long"] = tostring(coords.longitude)
+    message["elev"] = tostring(elevation)
+    local toSend = JSON:encode(message)
 
-        if pcall(function()
-                socket.try(udpSpeaker:sendto(toSend, "127.0.0.1", 42069))
-            end) then
-        else
-            log.write("THEWAY", log.ERROR, "Unable to send data")
-        end
+    if pcall(function()
+            socket.try(udpSpeaker:sendto(toSend, "127.0.0.1", 42069))
+        end) then
+    else
+        log.write("THEWAY", log.ERROR, "Unable to send data")
     end
 end
 

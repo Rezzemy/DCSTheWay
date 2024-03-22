@@ -2,6 +2,7 @@ import Convertors from "./Convertors";
 
 const convert = (dcsWaypoints, module) => {
   switch (module) {
+    default:
     case "F-15ESE":
     case "F-16C_50":
     case "F-16D_50":
@@ -10,9 +11,10 @@ const convert = (dcsWaypoints, module) => {
     case "F-16D_52_NS":
     case "F-16D_Barak_30":
     case "F-16D_Barak_40":
-    case "F-16I":  
+    case "F-16I":
     case "A-10C_2":
     case "A-10C":
+    case "Hercules":
     case "M-2000C": {
       // lat  00.00.000 DMM
       //long 000.00.000
@@ -45,7 +47,8 @@ const convert = (dcsWaypoints, module) => {
       }
       return waypoints;
     }
-    case "AH-64D_BLK_II": {
+    case "AH-64D_BLK_II":
+    case "UH-60L": {
       // lat  00.00.00 DMM
       //long 000.00.00
       let waypoints = [];
@@ -113,6 +116,7 @@ const convert = (dcsWaypoints, module) => {
       }
       return waypoints;
     }
+    case "Mirage-F1EE":
     case "Ka-50":
     case "Ka-50_3": {
       // lat  00.00.0 DMM
@@ -121,16 +125,18 @@ const convert = (dcsWaypoints, module) => {
       for (const dcsWaypoint of dcsWaypoints) {
         const name = dcsWaypoint.name;
         const id = dcsWaypoint.id;
-        let getCoord = function(degreeLength, dmm) {
+        let getCoord = function (degreeLength, dmm) {
           let degrees = dmm.deg;
           let minutes = dmm.min.toFixed(1).toString();
           if (Number(minutes) !== 0 && Number(minutes) % 60 === 0) {
             degrees++;
             minutes = "00.0";
           }
-          return degrees.toString().padStart(degreeLength, "0") +
-          "." +
-          minutes.padStart(4, "0");
+          return (
+            degrees.toString().padStart(degreeLength, "0") +
+            "." +
+            minutes.padStart(4, "0")
+          );
         };
         const lat = getCoord(2, Convertors.decimalToDMM(dcsWaypoint.lat));
         const long = getCoord(3, Convertors.decimalToDMM(dcsWaypoint.long));
@@ -184,8 +190,6 @@ const convert = (dcsWaypoints, module) => {
       }
       return waypoints;
     }
-    default:
-      return [];
   }
 };
 

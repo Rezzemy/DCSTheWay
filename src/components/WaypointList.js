@@ -1,4 +1,4 @@
-import { Box, Card, List, Typography } from "@mui/material";
+import { Box, Button, Card, List, Typography } from "@mui/material";
 import WaypointItem from "./WaypointItem";
 import { useDispatch, useSelector } from "react-redux";
 import { waypointsActions } from "../store/waypoints";
@@ -14,27 +14,41 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import ConvertModuleWaypoints from "../utils/ConvertModuleWaypoints";
+import { useEffect, useRef, useState } from "react";
 
 const WaypointList = () => {
   const isPending = useSelector((state) => state.ui.pendingWaypoint);
   const { lat, long, elev, module } = useSelector((state) => state.dcsPoint);
   const dcsWaypoints = useSelector((state) => state.waypoints.dcsWaypoints);
   const dispatch = useDispatch();
+  const [expandedWaypointId, setExpandedWaypointId] = useState(-1);
 
   const moduleCoordinates = ConvertModuleWaypoints(dcsWaypoints, module);
   const hasWaypoints = dcsWaypoints.length > 0;
+  const ref = useRef(null);
+  useEffect(() => {
+    if (dcsWaypoints.length) {
+      ref.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }
+  }, [dcsWaypoints.length]);
+
   const saveWaypointHandler = () => {
     dispatch(
       waypointsActions.addDcsWaypoint({
         lat,
         long,
         elev,
-      })
+      }),
     );
   };
   const deleteHandler = (event, id) => {
     dispatch(waypointsActions.delete(id));
   };
+
+  const deleteAllHandler = () => dispatch(waypointsActions.deleteAll());
 
   const renameHandler = (event, id) => {
     const name = event.target.value;
@@ -46,11 +60,17 @@ const WaypointList = () => {
     dispatch(waypointsActions.changeElevation({ id, elev }));
   };
 
+  const expandHandler = (id, isExpanded) => {
+    isExpanded ? setExpandedWaypointId(id) : setExpandedWaypointId(-1);
+  };
+
+  const checkIfExpanded = (id) => expandedWaypointId === id;
+
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (active.id !== over.id) {
       dispatch(
-        waypointsActions.changeOrder({ active: active.id, over: over.id })
+        waypointsActions.changeOrder({ active: active.id, over: over.id }),
       );
     }
   };
@@ -91,9 +111,11 @@ const WaypointList = () => {
                     elev={wp.elev}
                     latHem={wp.latHem}
                     longHem={wp.longHem}
+                    expanded={checkIfExpanded(wp.id)}
                     onRename={renameHandler}
                     onElevation={elevationHandler}
                     onDelete={deleteHandler}
+                    onExpand={expandHandler}
                   />
                 ))}
 
@@ -131,6 +153,14 @@ const WaypointList = () => {
             )}
           </SortableContext>
         </DndContext>
+        {hasWaypoints && (
+          <Box sx={{ width: "100%", textAlign: "center" }}>
+            <Button variant="text" size="small" onClick={deleteAllHandler}>
+              Clear All
+            </Button>
+          </Box>
+        )}
+        <div ref={ref} />
       </List>
     </Card>
   );

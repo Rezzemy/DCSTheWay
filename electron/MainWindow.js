@@ -16,12 +16,19 @@ class MainWindow extends BrowserWindow {
       },
       maximizable: false,
       resizable: false,
-      transparent:true,
+      transparent: true,
       frame: false,
       focusable: false,
     });
 
     this.setMenu(null);
+    if (process.platform === "win32") {
+      const WM_INITMENU = 0x0116;
+      this.hookWindowMessage(WM_INITMENU, () => {
+        this.setEnabled(false);
+        this.setEnabled(true);
+      });
+    }
     this.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     this.setAlwaysOnTop(true, "screen-saver");
 
